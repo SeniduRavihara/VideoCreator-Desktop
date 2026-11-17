@@ -1,15 +1,18 @@
 // @see - https://www.electron.build/configuration/configuration
 {
   "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "YourAppID",
+  "appId": "com.cinematicscroll.videocreator",
   "asar": true,
-  "productName": "YourAppName",
+  "productName": "CinematicScroll",
   "directories": {
     "output": "release/${version}"
   },
   "files": [
     "dist",
     "dist-electron"
+  ],
+  "asarUnpack": [
+    "**/node_modules/ffmpeg-static/**"
   ],
   "mac": {
     "target": [

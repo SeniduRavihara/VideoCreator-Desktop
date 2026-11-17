@@ -1,109 +1,128 @@
-import React, { useState } from "react";
-import SetupStep from "./components/SetupStep";
-import AudioSetupStep from "./components/AudioSetupStep";
-import PreviewRecordStep from "./components/PreviewRecordStep";
-import { longText } from "./constants";
+import React, { useState, useEffect } from 'react';
+import { AppState, defaultState } from '@/lib/types';
+import { Step1Design } from '@/components/Step1Design';
+import { Step2Audio } from '@/components/Step2Audio';
+import { Step3Preview } from '@/components/Step3Preview';
+import { Film, Sparkles } from 'lucide-react';
 
-const App = () => {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [title, setTitle] = useState("EPISODE IV\nA NEW HOPE");
-  const [storyText, setStoryText] = useState(longText);
-  const [resolution, setResolution] = useState<"720p" | "1080p">("720p");
-  const [speed, setSpeed] = useState(1);
-  const [font, setFont] = useState("'StarJedi', sans-serif");
-  const [titleColor, setTitleColor] = useState("#FFDD00");
-  const [textColor, setTextColor] = useState("white");
-  const [titleFontSize, setTitleFontSize] = useState(40);
-  const [contentFontSize, setContentFontSize] = useState(22);
-  const [backgroundColor, setBackgroundColor] = useState("#000000");
-  const [audioFile, setAudioFile] = useState<File | null>(null);
+export default function App() {
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [state, setState] = useState<AppState>(defaultState);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  // Step indicators
-  const renderStepIndicator = () => (
-    <div className="w-full max-w-3xl mx-auto mb-4">
-      <div className="flex items-center justify-between">
-        {[
-          { step: 1, name: "Setup" },
-          { step: 2, name: "Audio" },
-          { step: 3, name: "Preview & Record" },
-        ].map(({ step, name }) => (
-          <React.Fragment key={step}>
-            <div className="flex items-center">
-              <div
-                className={`rounded-full w-8 h-8 flex items-center justify-center ${
-                  currentStep >= step ? "bg-blue-600" : "bg-gray-700"
-                }`}
-              >
-                {step}
-              </div>
-              <div className="ml-2">{name}</div>
-            </div>
-            {step < 3 && (
-              <div
-                className={`h-1 flex-1 mx-4 ${
-                  currentStep > step ? "bg-blue-600" : "bg-gray-700"
-                }`}
-              />
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-    </div>
-  );
+  // Load state on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('cinematic_scroll_state');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Discard only the untouched starter saved by older versions; retain user stories.
+        const legacyStory = {
+          type: 'doc',
+          content: [
+            { type: 'paragraph', content: [{ type: 'text', text: 'It is a period of civil war.' }] },
+            { type: 'paragraph', content: [{ type: 'text', text: 'Rebel spaceships, striking from a hidden base, have won their first victory against the evil Galactic Empire.' }] },
+          ],
+        };
+        const isLegacyStarter = parsed.title === 'EPISODE IV\nA NEW HOPE'
+          && !parsed.text && JSON.stringify(parsed.content) === JSON.stringify(legacyStory);
+        setState({ ...defaultState, ...parsed, ...(isLegacyStarter ? {
+          title: '', text: '', content: defaultState.content,
+        } : {}), audioFile: null });
+      } catch (e) {
+        console.error('Failed to load state', e);
+      }
+    }
+    setIsLoaded(true);
+  }, []);
+
+  // Save state on change
+  useEffect(() => {
+    if (isLoaded) {
+      const { audioFile, ...serializableState } = state;
+      localStorage.setItem('cinematic_scroll_state', JSON.stringify(serializableState));
+    }
+  }, [state, isLoaded]);
+
+  const updateState = (updates: Partial<AppState>) => {
+    setState((prev) => ({ ...prev, ...updates }));
+  };
+
+  if (!isLoaded) return null;
 
   return (
-    <div className="flex flex-col gap-4 p-4 bg-gray-900 min-h-screen text-white w-screen overflow-x-hidden">
-      {renderStepIndicator()}
+    <main className="min-h-screen">
+      <div className="max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+        
+        {/* Header */}
+        <header className="mb-8 text-center space-y-4 animate-in fade-in slide-in-from-top-8 duration-700">
+          <div className="inline-flex items-center justify-center p-3 bg-white/5 rounded-2xl border border-white/10 shadow-2xl shadow-yellow-500/10 mb-2">
+            <Film className="w-8 h-8 text-yellow-500" />
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tighter font-orbitron bg-clip-text text-transparent bg-gradient-to-r from-yellow-400 to-yellow-600">
+            CINEMATIC SCROLL
+          </h1>
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto flex items-center justify-center gap-2">
+            <Sparkles className="w-5 h-5 text-yellow-500/50" />
+            Create epic scrolling text videos for social media
+            <Sparkles className="w-5 h-5 text-yellow-500/50" />
+          </p>
+        </header>
 
-      {currentStep === 1 ? (
-        <SetupStep
-          title={title}
-          setTitle={setTitle}
-          storyText={storyText}
-          setStoryText={setStoryText}
-          resolution={resolution}
-          setResolution={setResolution}
-          speed={speed}
-          setSpeed={setSpeed}
-          font={font}
-          setFont={setFont}
-          titleColor={titleColor}
-          setTitleColor={setTitleColor}
-          textColor={textColor}
-          setTextColor={setTextColor}
-          titleFontSize={titleFontSize}
-          setTitleFontSize={setTitleFontSize}
-          contentFontSize={contentFontSize}
-          setContentFontSize={setContentFontSize}
-          backgroundColor={backgroundColor}
-          setBackgroundColor={setBackgroundColor}
-          onContinue={() => setCurrentStep(2)}
-        />
-      ) : currentStep === 2 ? (
-        <AudioSetupStep
-          audioFile={audioFile}
-          onAudioUpload={setAudioFile}
-          onContinue={() => setCurrentStep(3)}
-          onBack={() => setCurrentStep(1)}
-        />
-      ) : (
-        <PreviewRecordStep
-          title={title}
-          storyText={storyText}
-          resolution={resolution}
-          speed={speed}
-          font={font}
-          titleColor={titleColor}
-          textColor={textColor}
-          titleFontSize={titleFontSize}
-          contentFontSize={contentFontSize}
-          backgroundColor={backgroundColor}
-          audioFile={audioFile}
-          onBackToSetup={() => setCurrentStep(2)}
-        />
-      )}
-    </div>
+        {/* Progress Bar */}
+        <div className="mb-8 max-w-3xl mx-auto">
+          <div className="flex items-center justify-between relative">
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-white/10 rounded-full -z-10"></div>
+            <div 
+              className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full -z-10 transition-all duration-500 ease-out"
+              style={{ width: `${((step - 1) / 2) * 100}%` }}
+            ></div>
+            
+            {[1, 2, 3].map((i) => (
+              <div 
+                key={i}
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-300 ${
+                  step >= i 
+                    ? 'bg-yellow-500 text-black shadow-[0_0_15px_rgba(234,179,8,0.5)] scale-110' 
+                    : 'bg-black border-2 border-white/20 text-gray-400'
+                }`}
+              >
+                {i}
+              </div>
+            ))}
+          </div>
+          <div className="flex justify-between mt-4 text-xs font-medium text-gray-400 uppercase tracking-wider px-2">
+            <span className={step >= 1 ? 'text-yellow-500' : ''}>Design</span>
+            <span className={step >= 2 ? 'text-yellow-500' : ''}>Audio</span>
+            <span className={step >= 3 ? 'text-yellow-500' : ''}>Export</span>
+          </div>
+        </div>
+
+        {/* Content Area */}
+        <div className="relative min-h-[600px]">
+          {step === 1 && (
+            <Step1Design 
+              state={state} 
+              updateState={updateState} 
+              onNext={() => setStep(2)} 
+            />
+          )}
+          {step === 2 && (
+            <Step2Audio 
+              state={state} 
+              updateState={updateState} 
+              onNext={() => setStep(3)} 
+              onBack={() => setStep(1)} 
+            />
+          )}
+          {step === 3 && (
+            <Step3Preview 
+              state={state} 
+              onBack={() => setStep(2)} 
+            />
+          )}
+        </div>
+      </div>
+    </main>
   );
-};
-
-export default App;
+}
